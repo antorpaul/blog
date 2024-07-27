@@ -1,27 +1,27 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.sitemaps.org/schemas/sitemap/0.9 http://www.sitemaps.org/schemas/sitemap/0.9/sitemap.xsd" xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 <url>
-<loc>http://localhost:4000/about</loc>
-<lastmod>2024-07-27T09:17:20-07:00</lastmod>
+<loc>http://localhost:4000/blog/about</loc>
+<lastmod>2024-07-27T09:48:09-07:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/search</loc>
-<lastmod>2024-07-27T09:17:20-07:00</lastmod>
+<loc>http://localhost:4000/blog/search</loc>
+<lastmod>2024-07-27T09:48:09-07:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/2024/07/27/postgresql-triggers-and-notify</loc>
+<loc>http://localhost:4000/blog/2024/07/27/postgresql-triggers-and-notify</loc>
 <lastmod>2024-07-27T00:00:00-07:00</lastmod>
 </url>
 <url>
-<loc>http://localhost:4000/</loc>
+<loc>http://localhost:4000/blog/</loc>
 </url>
 <url>
-<loc>http://localhost:4000/tag/database/</loc>
+<loc>http://localhost:4000/blog/tag/database/</loc>
 </url>
 <url>
-<loc>http://localhost:4000/tag/postgresql/</loc>
+<loc>http://localhost:4000/blog/tag/postgresql/</loc>
 </url>
 <url>
-<loc>http://localhost:4000/tag/python/</loc>
+<loc>http://localhost:4000/blog/tag/python/</loc>
 </url>
 </urlset>

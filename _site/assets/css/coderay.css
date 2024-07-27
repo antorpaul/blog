@@ -1,0 +1,43 @@
+pre {
+  overflow-x: auto;
+  white-space: pre;
+  word-wrap: normal;
+  padding: 10px;
+  background-color: #f0f0f0;
+  border-radius: 4px;
+}
+
+/* CodeRay table styling */
+.CodeRay table {
+  margin: 0 auto; /* Center the table */
+  max-width: 50%;
+}
+
+.CodeRay table pre {
+  overflow: visible;
+  padding: 0;
+}
+
+.CodeRay .code pre {
+  overflow-x: scroll;
+  vertical-align: top;
+  width: 63vw;
+}
+
+/* Small screens */
+@media (max-width: 720px) {
+  .CodeRay .code pre {
+    width: 80vw;
+  }
+}
+
+.CodeRay .line-numbers {
+  text-align: right;
+  padding-right: 2px;
+  color: #999;
+  vertical-align: top;
+}
+
+.CodeRay .line-numbers a {
+  text-decoration: none;
+}
