@@ -1,0 +1,119 @@
+<!DOCTYPE html><html lang="en" ><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><meta name="generator" content="Jekyll v4.3.3" /><meta property="og:title" content="PostgreSQL Triggers and Notify" /><meta property="og:locale" content="en_US" /><meta name="description" content="Introduction to LISTEN/NOTIFY in PostgreSQL and a look into potential pitfalls." /><meta property="og:description" content="Introduction to LISTEN/NOTIFY in PostgreSQL and a look into potential pitfalls." /><link rel="canonical" href="https://antorpaul.github.io/blog/blog/2024/07/27/postgresql-triggers-and-notify" /><meta property="og:url" content="https://antorpaul.github.io/blog/blog/2024/07/27/postgresql-triggers-and-notify" /><meta property="og:site_name" content="Antor’s Blog" /><meta property="og:type" content="article" /><meta property="article:published_time" content="2024-07-27T00:00:00+00:00" /><meta name="twitter:card" content="summary" /><meta property="twitter:title" content="PostgreSQL Triggers and Notify" /> <script type="application/ld+json"> {"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-07-27T00:00:00+00:00","datePublished":"2024-07-27T00:00:00+00:00","description":"Introduction to LISTEN/NOTIFY in PostgreSQL and a look into potential pitfalls.","headline":"PostgreSQL Triggers and Notify","mainEntityOfPage":{"@type":"WebPage","@id":"https://antorpaul.github.io/blog/blog/2024/07/27/postgresql-triggers-and-notify"},"url":"https://antorpaul.github.io/blog/blog/2024/07/27/postgresql-triggers-and-notify"}</script><title> PostgreSQL Triggers and Notify - Antor&#39;s Blog</title><link rel="shortcut icon" href="/blog/favicon.png"><link rel="alternate" type="application/atom+xml" title="Antor's Blog" href="/blog/atom.xml"><link rel="alternate" type="application/json" title="Antor's Blog" href="https://antorpaul.github.io/blog/blog/feed.json" /><link rel="sitemap" type="application/xml" title="sitemap" href="/blog/sitemap.xml" /><link rel="stylesheet" href="/blog/assets/css/coderay.css"><style> *,:after,:before{box-sizing:border-box;background-color:inherit;color:inherit;margin:0;padding:0}body{font-family:system-ui,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility;line-height:1.5;font-size:1rem;color:#16171a}nav ul{border-right:1px solid #edf2f7}a{color:#000;text-decoration-skip-ink:auto;text-decoration:underline}pre{margin:.5rem 0;padding:.5rem}.post p{margin:.5rem 0}.post h1,.post h2,.post h3,.post h4{margin:1rem 0}.post h2:first-child,.project h2:first-child,.photo h2:first-child{margin-top:0}.meta{margin:2rem 0}code,pre{background:#ecedee}code{padding:.1rem}pre code{border:none}pre{padding:1rem;overflow-x:auto}img{max-width:100%}hr{background:#000;height:1px;border:0}header{flex-basis:10rem;flex-grow:1;position:relative}header a{text-decoration:none}header li{margin-bottom:.2rem;text-align:right;margin-right:2rem}header a.active{font-weight:bold}header,section{padding:1rem}blockquote{font-style:italic;border-left:5px solid #ececec;padding-left:1rem}h1,h2,h3,h4,h5{line-height:1;margin:1rem 0;font-weight:600}section h1:first-child{margin-top:0}strong,b{font-weight:bold}.photos ul{list-style:none}.photos li{margin-bottom:1.5rem}.photo picture,.project picture{margin-bottom:.5rem}.posts ul,header ul{list-style:none}.posts li{align-items:center;display:flex;justify-content:space-between;margin-bottom:.5rem}.posts li a,.posts li div,.projects li a{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;text-decoration:none}.posts li time,.projects li time{padding-left:1rem;white-space:nowrap;font-variant-numeric:tabular-nums}.post ul,.project ul,.post ol{padding-left:1.5rem;list-style-position:outside}main{display:flex;flex-wrap:wrap;max-width:60rem;margin:2rem auto;padding:1rem}@media screen and (max-width: 45rem){header li{display:inline;margin-right:1rem}.logo{padding-bottom:1rem}header ul{border-bottom:1px solid #edf2f7;padding-bottom:2rem}nav ul{border-right:0px}.photos ul{margin-top:.5rem}}section{flex-basis:0;flex-grow:999;min-width:70%;display:flex;flex-direction:column}figcaption{font-size:smaller}@media print{.no-print,.no-print *{display:none !important}}</style><meta name="description" content="Writing about programming, databases, software engineering with emphasis on back-end tutorials, guides, tips and tricks. Working in C#, Python, SQL and Postgres." /><meta name="keywords" content="programming tutorials, coding guides, Python, Java, C#, learn to code" /></head><body><main><header aria-hidden="true" class="no-print"> <!--<h1 class="logo">Antor's Blog</h1>--><nav role="navigation" aria-hidden="true"><ul><li><a href="" >Antor's Blog</a></li><li><a href="/blog/" >Writing</a></li><li><a href="/blog/about" >About</a></li><li><a href="/blog/search" >Search</a></li></ul></nav></header><section class="post"><h2>PostgreSQL Triggers and Notify</h2><p>The PostgreSQL protocol offers a streaming protocol that implements asynchronous messages and notifications. This means that your database server can send out messages at any time. It sounds really nice, but the Notify feature actually comes with pitfalls. The main thing to note is that this feature is not a proper message queue in the sense that there is no mechanism to keep track of what messages have been received. I did compile a list of situations that PSQL Listen/Notify falls short at the end, but let’s go through it for a bit before starting to go through the issues with it.</p><h3 id="quick-demo">Quick Demo</h3><h4 id="setting-up-our-db-triggers">Setting Up Our DB Triggers</h4><p>In order to set up a system where you can subscribe to notifications from your database, you’ll first need some sort of function that notifies specified channels. After you create that function, you’ll need to create a trigger that calls that function to notify channels.</p><p>Imagine a scenario where your neighbour is an obsessive pet lover who’s keeping a database of all the pets in the building. You can choose to subscribe to their database as a dog lover or a cat lover. Then, whenever they insert a new dog to their database, the dog lover channel will get a notification.</p><p>Let’s blackbox the notify function for now and call it notify_dog_lovers() and instead look at the trigger.</p><div class="language-sql highlighter-coderay"><table class="CodeRay"><tr><td class="line-numbers"><pre><a href="#n1" name="n1">1</a>
+<a href="#n2" name="n2">2</a>
+<a href="#n3" name="n3">3</a>
+<a href="#n4" name="n4">4</a>
+</pre></td><td class="code"><pre><span style="color:#777">-- Create the trigger</span>
+<span style="color:#B06;font-weight:bold">CREATE</span> <span style="color:#339;font-weight:bold">TRIGGER</span> new_dog_alert
+    <span style="color:#088;font-weight:bold">AFTER</span> <span style="color:#B06;font-weight:bold">INSERT</span> <span style="color:#080;font-weight:bold">ON</span> public.apt_pets
+    <span style="color:#080;font-weight:bold">FOR</span> <span style="color:#080;font-weight:bold">EACH</span> <span style="color:#339;font-weight:bold">ROW</span> EXECUTE <span style="color:#339;font-weight:bold">FUNCTION</span> notify_dog_lovers();
+</pre></td></tr></table></div><p>So, this trigger simply creates a trigger called new_dog_alert which executes a function called notify_dog_lovers() whenever an insert happens on apt_pets .</p><p>Now, let’s see what <code>new_dog_alert()</code> would look like.</p><div class="language-sql highlighter-coderay"><table class="CodeRay"><tr><td class="line-numbers"><pre><a href="#n1" name="n1">1</a>
+<a href="#n2" name="n2">2</a>
+<a href="#n3" name="n3">3</a>
+<a href="#n4" name="n4">4</a>
+<a href="#n5" name="n5">5</a>
+<a href="#n6" name="n6">6</a>
+<a href="#n7" name="n7">7</a>
+<a href="#n8" name="n8">8</a>
+<a href="#n9" name="n9">9</a>
+<a href="#n10" name="n10">10</a>
+<a href="#n11" name="n11">11</a>
+<a href="#n12" name="n12">12</a>
+<a href="#n13" name="n13">13</a>
+<a href="#n14" name="n14">14</a>
+<a href="#n15" name="n15">15</a>
+<a href="#n16" name="n16">16</a>
+</pre></td><td class="code"><pre><span style="color:#777">-- Create the trigger function</span>
+<span style="color:#B06;font-weight:bold">CREATE</span> <span style="color:#080;font-weight:bold">OR</span> <span style="color:#B06;font-weight:bold">REPLACE</span> <span style="color:#339;font-weight:bold">FUNCTION</span> new_dog_alert() RETURNS <span style="color:#339;font-weight:bold">TRIGGER</span> <span style="color:#080;font-weight:bold">AS</span> <span style="color:#F00;background-color:#FAA">$</span><span style="color:#F00;background-color:#FAA">$</span>
+<span style="color:#B06;font-weight:bold">BEGIN</span>
+    <span style="color:#080;font-weight:bold">IF</span> NEW.type <span style="color:#080;font-weight:bold">LIKE</span> <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">dog</span><span style="color:#710">'</span></span> <span style="color:#080;font-weight:bold">THEN</span>
+        <span style="color:#777">-- Notify the channel 'dog_lovers'</span>
+        PERFORM pg_notify(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">dog_lovers</span><span style="color:#710">'</span></span>, json_build_object(
+            <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">operation</span><span style="color:#710">'</span></span>, TG_OP,
+            <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">name</span><span style="color:#710">'</span></span>, NEW.name,
+            <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">age</span><span style="color:#710">'</span></span>, NEW.age,
+            <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">favorite_toy</span><span style="color:#710">'</span></span>, NEW.favorite_toy,
+            <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">'</span><span style="color:#D20">favorite_treat</span><span style="color:#710">'</span></span>, NEW.favoriteTreat,
+        )::<span style="color:#0a8;font-weight:bold">text</span>);
+    <span style="color:#080;font-weight:bold">END</span> <span style="color:#080;font-weight:bold">IF</span>;
+    <span style="color:#088;font-weight:bold">RETURN</span> NEW;
+<span style="color:#080;font-weight:bold">END</span>;
+<span style="color:#F00;background-color:#FAA">$</span><span style="color:#F00;background-color:#FAA">$</span> LANGUAGE plpgsql;
+</pre></td></tr></table></div><p>I’ll explain this code briefly, but for a more in-depth page on defining functions specific to Postgres, I recommend this: https://www.postgresql.org/docs/current/sql-createfunction.html</p><p>So, here we’re creating a function called <code>new_dog_alert()</code> which will <code>PERFORM</code> a <code>pg_notify()</code> call whenever it is triggered.</p><p>The key lines for our business logic are:</p><ul><li><code>IF NEW.type LIKE ‘dog’ THEN</code> where we check that the new insert’s type is “dog”</li><li><code>PERFORM pg_notify(‘dog_lovers’, json_build_object(…)</code> where we run <code>pg_notify()</code> to send the message out to our channel named “dog_lovers” and build a json object which will have all of the information we supply it.</li><li><code>'operation', TG_OP</code> which supplies the type of operation in our JSON.</li></ul><p>So now we have a trigger function that sends a json into the “dog_lovers” channel everytime an INSERT happens. We can make sure of this by checking the JSON and seeing that every single message has an insert. Postgresql can handle messages up to 8kb which allows for rich JSONs.</p><p>Before moving onto writing code that listens for triggers, we can listen to our messages through the psql console like this:</p><p><code>LISTEN dog_lovers</code></p><p>To test out this command, I edited my database of exercises in my workout tracking app so that a new message is sent out everytime a new tricep exercise is added. I’ve aptly called my channel “tricep_lovers”.</p><p><img src="https://antorwrites.wordpress.com/wp-content/uploads/2024/07/screenshot-2024-07-26-at-8.37.33e280afpm.png?w=1024" alt="DBeaver Console" /> <em>My code in DBeaver</em></p><p><img src="https://antorwrites.wordpress.com/wp-content/uploads/2024/07/screenshot-2024-07-26-at-8.40.24e280afpm.png?w=1024" alt="Console command to Listen to my channel" /> <em>Console window where I listen to my channel using the psql cli</em></p><p><img src="https://antorwrites.wordpress.com/wp-content/uploads/2024/07/screenshot-2024-07-26-at-8.48.36e280afpm.png?w=1024" alt="Console listening to channel" /></p><p>After some struggle (I forgot a semicolon after my initial “LISTEN”), you can see a message come in after I added the “Skull Crushers” exercise. <br />More on this here: https://www.postgresql.org/docs/current/sql-listen.html</p><h3 id="setting-up-an-application-to-listen-in-python">Setting up an Application to Listen in Python</h3><p>I’ve seen a number of people create a simple application like this in GO but I’m not super familiar with GO so I decided to go with Python for the sake of this tutorial. If you are curious though, here is a good post that also goes into chunking payloads: https://ds0nt.com/postgres-streaming-listen-notify-go</p><p>For this, you’ll want to have a Python virtual machine. I’ve used Python 3.12.4 here but there shouldn’t be any significant differences at least as far as Python 3.8.</p><p>Next, you’ll want to get psycopg2 (pip install psycopg2).</p><p>Now you’ll need some code to connect to your database.</p><div class="language-python highlighter-coderay"><table class="CodeRay"><tr><td class="line-numbers"><pre><a href="#n1" name="n1">1</a>
+<a href="#n2" name="n2">2</a>
+<a href="#n3" name="n3">3</a>
+<a href="#n4" name="n4">4</a>
+<a href="#n5" name="n5">5</a>
+<a href="#n6" name="n6">6</a>
+<a href="#n7" name="n7">7</a>
+<a href="#n8" name="n8">8</a>
+<a href="#n9" name="n9">9</a>
+<a href="#n10" name="n10">10</a>
+<a href="#n11" name="n11">11</a>
+<a href="#n12" name="n12">12</a>
+<a href="#n13" name="n13">13</a>
+<a href="#n14" name="n14">14</a>
+</pre></td><td class="code"><pre><span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">create_listen_connection</span>(<span style="color:#069">self</span>, channel_name: str = <span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#710">&quot;</span></span>) -&gt; connection:
+    db = psycopg2.connect(<span style="color:#069">self</span>.conn_string) <span style="color:#777"># Connect to a new DB instance</span>
+     
+    <span style="color:#777"># I chose this isolation level for this tutorial because it allows me to be a bit more concise</span>
+    <span style="color:#777"># but if require more control, I would recommend you try something else.</span>
+    <span style="color:#777"># For more detail: https://www.psycopg.org/docs/extensions.html#isolation-level-constants</span>
+    db.set_isolation_level(psycopg2.extensions.ISOLATION_LEVEL_AUTOCOMMIT)
+ 
+    cursor = db.cursor()
+    <span style="color:#080;font-weight:bold">if</span> channel_name:
+        cursor.execute(f<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">LISTEN {channel_name}</span><span style="color:#710">&quot;</span></span>)
+ 
+    <span style="color:#777"># Return the db context so you can use it in other functions</span>
+    <span style="color:#080;font-weight:bold">return</span> db
+</pre></td></tr></table></div><p>I’ve left some comments on important bits. This function will simply create a db connection and execute a command that listens to the channel we supply it.</p><p>Next, we simply need a function that subscribes and does something with the notifications.</p><div class="language-python highlighter-coderay"><table class="CodeRay"><tr><td class="line-numbers"><pre><a href="#n1" name="n1">1</a>
+<a href="#n2" name="n2">2</a>
+<a href="#n3" name="n3">3</a>
+<a href="#n4" name="n4">4</a>
+<a href="#n5" name="n5">5</a>
+<a href="#n6" name="n6">6</a>
+<a href="#n7" name="n7">7</a>
+<a href="#n8" name="n8">8</a>
+<a href="#n9" name="n9">9</a>
+<a href="#n10" name="n10">10</a>
+<a href="#n11" name="n11">11</a>
+<a href="#n12" name="n12">12</a>
+<a href="#n13" name="n13">13</a>
+<a href="#n14" name="n14">14</a>
+<a href="#n15" name="n15">15</a>
+<a href="#n16" name="n16">16</a>
+<a href="#n17" name="n17">17</a>
+<a href="#n18" name="n18">18</a>
+<a href="#n19" name="n19">19</a>
+<a href="#n20" name="n20">20</a>
+<a href="#n21" name="n21">21</a>
+<a href="#n22" name="n22">22</a>
+<a href="#n23" name="n23">23</a>
+<a href="#n24" name="n24">24</a>
+</pre></td><td class="code"><pre>async <span style="color:#080;font-weight:bold">def</span> <span style="color:#06B;font-weight:bold">do_something_on_notify</span>(<span style="color:#069">self</span>, db: connection) -&gt; <span style="color:#069">None</span>:
+    <span style="color:#080;font-weight:bold">try</span>:
+        <span style="color:#080;font-weight:bold">while</span> <span style="color:#069">True</span>:
+            <span style="color:#777"># Use a select to keep watch over file descriptors</span>
+            <span style="color:#777"># [db] contains fds to check if we can read db</span>
+            <span style="color:#777"># empty lists in between are for writeability and exceptions</span>
+            <span style="color:#777"># 5 represents a timeout</span>
+            <span style="color:#777"># If we have a message available for us to read, then this condition fails</span>
+            <span style="color:#777"># at that point, move into the else loop and process the message</span>
+            <span style="color:#080;font-weight:bold">if</span> select.select([db], [], [], <span style="color:#00D">5</span>) == ([], [], []):
+                print(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Waiting for messages...</span><span style="color:#710">&quot;</span></span>)
+            <span style="color:#080;font-weight:bold">else</span>:
+                db.poll()
+                <span style="color:#080;font-weight:bold">while</span> db.notifies:
+                    note = db.notifies.pop(<span style="color:#00D">0</span>)
+                    <span style="color:#080;font-weight:bold">try</span>:
+                        print(f<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Received message in subscribed channel: {note}</span><span style="color:#710">&quot;</span></span>)
+                    <span style="color:#080;font-weight:bold">except</span> <span style="color:#C00;font-weight:bold">Exception</span> <span style="color:#080;font-weight:bold">as</span> exc:
+                        print(f<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Unhandled exception for message in channel {self.channel}: {exc}</span><span style="color:#710">&quot;</span></span>)
+            await asyncio.sleep(<span style="color:#60E">0.1</span>)  <span style="color:#777"># Small sleep to allow other tasks to run, otherwise this function would block others </span>
+    <span style="color:#080;font-weight:bold">except</span> <span style="color:#C00;font-weight:bold">KeyboardInterrupt</span>:
+        print(<span style="background-color:hsla(0,100%,50%,0.05)"><span style="color:#710">&quot;</span><span style="color:#D20">Listener stopped by user.</span><span style="color:#710">&quot;</span></span>)
+    <span style="color:#080;font-weight:bold">finally</span>:
+        db.close()
+</pre></td></tr></table></div><p>So if you were to start running this in your console, you would see the following console line print out once you add Skull Crushers to your exercise DB:</p><blockquote><div class="language-plaintext highlighter-coderay"><table class="CodeRay"><tr><td class="line-numbers"><pre><a href="#n1" name="n1">1</a>
+</pre></td><td class="code"><pre>Received message in subscribed channel: &quot;{&quot;operation&quot; : &quot;INSERT&quot;, &quot;name&quot; : &quot;Skull Crushers&quot;, &quot;description&quot; : &quot;An exercise where you use an EZ Bar or dumbbells while laying down. You lower the weight towards your forehead in a controlled motion focusing on your triceps.&quot;}&quot;
+</pre></td></tr></table></div></blockquote><h3 id="pitfalls">Pitfalls</h3><p>To be honest, I consider this a niche feature because the situations to use this would not occur very often. First of all, this is simply a built-in barebones message broker. If you need something robust, you would simply use a message broker like Kafka.</p><p>I believe the LISTEN/NOTIFY features are excellent when you are subscribing to schemas where changes don’t happen often, you have extra DB resources to spare, and you’re able to control when you poll by anticipating when changes may happen.</p><p>But… if you can anticipate when changes happen, would you need this? I can only think of a situation where a user is making a change to a schema that may be tied to another. In that case, you may want to start polling for specific changes to see if you have to invalidate your cached values somewhere. Maybe I’m thinking about this the wrong way, I’d love to hear any comments and thoughts on this.</p><p>These are some situations that I believe Postgresql LISTEN/NOTIFY will fall short:</p><ol><li><strong>High-Frequency Events:</strong><ul><li>If the events you’re tracking occur frequently, LISTEN/NOTIFY will not be efficient due to the potential overhead of sending and processing many notifications. At the end of the day, any application that subscribes to the channel is constantly polling the channel.</li></ul></li><li><strong>Complex Event Processing:</strong><ul><li>The features and API around polling are not robust enough for you to safely exect complex messages. Although all message brokers come with a degree of packet loss, using a dedicated event processing system like Apache Kafka, RabbitMQ, or AWS Kinesis will be more appropriate.<ul><li>On this note, the max size of your payload via LISTEN/NOTIFY is 8KB.</li></ul></li></ul></li><li><strong>Cross-Database or Cross-Instance Communication:</strong><ul><li>LISTEN/NOTIFY works within a single PostgreSQL database instance. For cross-database or cross-instance communication, you will need an external messaging system.</li></ul></li><li><strong>Long-Running or Blocking Operations:</strong><ul><li>Notifications in PostgreSQL are not meant for long-running or blocking operations.</li></ul></li></ol><p>PostgreSQL is a great relational database solution and I’ve enjoyed opportunities to work with the unique tools it offers. At the end of the day, I believe the LISTEN/NOTIFY is a neat feature to allow some quick integration and outputs, but if it’s something that you start to rely on then you probably need to integrate a message broker.</p><span class="meta"> <time datetime="2024-07-27T00:00:00+00:00">July 27, 2024</time> &middot; <a href="/tag/database">database</a>, <a href="/tag/postgresql">postgresql</a>, <a href="/tag/python">python</a> </span></section></main></body></html>

@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://antorpaul.github.io/blog/sitemap.xml
