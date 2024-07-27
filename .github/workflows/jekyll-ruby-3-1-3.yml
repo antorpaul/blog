@@ -24,13 +24,25 @@ jobs:
         gem install bundler
         bundle install
         gem install kramdown-syntax-coderay
+        gem install ffi -v '1.12.1' --source 'https://rubygems.org
 
-    - name: Build the site
-      run: bundle exec jekyll build
-
-    - name: Deploy to GitHub Pages
-      uses: peaceiris/actions-gh-pages@v3
+    - name: Build with Jekyll
+      uses: actions/jekyll-build-pages@v1
       with:
-        github_token: ${{ secrets.GITHUB_TOKEN }}
-        publish_dir: ./_site
-        enable_jekyll: true
+        source: ./
+        destination: ./_site
+
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+
+  # Deployment job
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    needs: build
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
