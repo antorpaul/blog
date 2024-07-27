@@ -1,7 +1,7 @@
 site: Antor Blog
 url: https://antorpaul.github.io/blog
 title: Antor's Blog
-description: Writings about tech by Antor
+description: about tech
 permalink: pretty
 
 baseurl: ""

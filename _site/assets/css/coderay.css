@@ -22,6 +22,7 @@ pre {
   overflow-x: scroll;
   vertical-align: top;
   width: 63vw;
+  max-width: 750px;
 }
 
 /* Small screens */
