@@ -24,7 +24,7 @@ jobs:
         gem install bundler
         bundle install
         gem install kramdown-syntax-coderay
-        gem install ffi -v '1.12.1' --source 'https://rubygems.org
+        gem install ffi -v '1.12.1' --source 'https://rubygems.org'
 
     - name: Build with Jekyll
       uses: actions/jekyll-build-pages@v1
