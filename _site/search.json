@@ -4,7 +4,7 @@
 
       "title"    : "PostgreSQL Triggers and Notify",
       "description" : "Introduction to LISTEN/NOTIFY in PostgreSQL and a look into potential pitfalls.",
-      "url"      : "/blog//2024/07/27/postgresql-triggers-and-notify",
+      "url"      : "/blog/2024/07/27/postgresql-triggers-and-notify",
       "category" : "",
       "tags"     : "database, postgresql, python",
       "date"     : "2024-07-27 00:00:00 -0700"

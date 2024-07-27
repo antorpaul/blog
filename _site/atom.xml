@@ -2,9 +2,9 @@
 <feed xmlns="http://www.w3.org/2005/Atom">
 
  <title>Antor's Blog</title>
- <link href="http://localhost:4000/blog//atom.xml" rel="self"/>
- <link href="http://localhost:4000/blog//"/>
- <updated>2024-07-27T09:48:09-07:00</updated>
+ <link href="http://localhost:4000/blog/atom.xml" rel="self"/>
+ <link href="http://localhost:4000/blog/"/>
+ <updated>2024-07-27T09:55:59-07:00</updated>
  <id>http://localhost:4000</id>
  <author>
    <name></name>
@@ -14,7 +14,7 @@
  
  <entry>
    <title>PostgreSQL Triggers and Notify</title>
-   <link href="http://localhost:4000/blog//2024/07/27/postgresql-triggers-and-notify"/>
+   <link href="http://localhost:4000/blog/2024/07/27/postgresql-triggers-and-notify"/>
    <updated>2024-07-27T00:00:00-07:00</updated>
    <id>http://localhost:4000/2024/07/27/postgresql-triggers-and-notify</id>
    <content type="html">&lt;p&gt;The PostgreSQL protocol offers a streaming protocol that implements asynchronous messages and notifications. This means that your database server can send out messages at any time. It sounds really nice, but the Notify feature actually comes with pitfalls. The main thing to note is that this feature is not a proper message queue in the sense that there is no mechanism to keep track of what messages have been received. I did compile a list of situations that PSQL Listen/Notify falls short at the end, but let’s go through it for a bit before starting to go through the issues with it.&lt;/p&gt;
