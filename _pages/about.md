@@ -3,26 +3,10 @@ layout: page
 title: About
 ---
 
-Sidey is a simple and minimalistic jekyll blogging theme.
 
-### Features
+**Pronouns** He/Him<br>
+**Based** in California.<br>
+**Find me** on [LinkedIn](https://linkedin.com/in/antorpaul).<br>
 
-- Responsive design
-- Inline CSS
-- Anchor headings
-- Search
-- Tags & tag pages
-- Security headers (for Netlify hosting)
-- 404 page
-- Compressed CSS and HTML
-- 100/100 score on Lighthouse, Page Speed Insights & Webpagetest
-- Robots.txt
-- Atom & Json feeds
-- Sass
-- Seo optimized (Twitter cards, Facebook Open Graph, Schema.org)
-- Ultra fast (Only ~5kb of CSS)
-- Sidebar navigation
+I love music, art, and weightlifting. I’m always open to song or artist recommendations! 
 
-### Screenshot
-
-![Screenshot](screenshot.png)

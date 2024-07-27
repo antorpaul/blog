@@ -1,3 +1,7 @@
+# Welcome to my blog 
+
+This is a fork of Sidey which you should check out. Super nice template. Here is their readme: 
+
 # Sidey
 
 Sidey is a simple and minimalistic jekyll blogging theme.
