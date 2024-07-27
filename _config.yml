@@ -4,7 +4,7 @@ title: Antor's Blog
 description: Writings about tech by Antor
 permalink: pretty
 
-baseurl: "/blog"
+baseurl: ""
 
 highlighter: none
 
