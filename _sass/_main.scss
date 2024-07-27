@@ -154,7 +154,8 @@ strong, b {
 }
 
 .post ul, .project ul, .post ol  {
-	//list-style-position: inside;
+  padding-left: 1.5rem; /* Adjust as needed for proper indentation */
+  list-style-position: outside; /* Ensure list markers are outside */
 }
 
 main {
