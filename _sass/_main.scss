@@ -144,7 +144,17 @@ strong, b {
 	white-space:nowrap;
 	overflow:hidden;
 	text-overflow:ellipsis;
-	text-decoration: none;
+	text-decoration: underline;
+	text-underline-offset: 20%;
+	transition: text-underline-offset 0.3s ease;
+}
+
+.posts li a:hover {
+	white-space:nowrap;
+	overflow:hidden;
+	text-overflow:ellipsis;
+	text-decoration: underline;
+	text-underline-offset: 2%;
 }
 
 .posts li time, .projects li time {
